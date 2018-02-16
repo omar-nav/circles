@@ -1,355 +1,326 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<style>
-    h1{
-        text-align: left;
-    }
-    h2{
-        text-align: right;
-    }
-    body {
-        background: rgba(65, 81, 114, 0.36);
-        text-align: center;
-        padding: 5%;
-    }
-    svg{
-        stroke: #000;
-        font-family: "Futura", "Futura", "Futura", Helvetica, Arial, "Lucida Grande", sans-serif;
+<html>
+<head>
+    <title>DST Transitions</title>
+    <style>
 
-    }
-    #rim {
-        fill: none;
-        stroke: #999;
-        stroke-width: 3px;
-    }
-    .second-hand{
-        stroke-width:3;
-    }
-    .minute-hand{
-        stroke-width:8;
-        stroke-linecap:round;
-    }
-    .hour-hand{
-        stroke-width:12;
-        stroke-linecap:round;
-    }
-    .hands-cover{
-        stroke-width:3;
-        fill:#fff;
-    }
-    .second-tick{
-        stroke-width:3;
-        fill:#000;
-    }
-    .hour-tick{
-        stroke-width:16; //same as the minute hand
-    }
-    .second-label{
-        font-size: 22px;
-    }
-    .hour-label{
-        font-size: 40px;
-    }
-</style>
+        body {
+            background: #fff;
+        }
+
+        svg{
+            stroke: #000;
+            font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+        }
+
+        h1 {
+            font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+            font-weight: 200;
+            font-size: 24px;
+        }
+
+        div.clocks {
+            height: 215px;
+        }
+
+        #rim {
+            fill: none;
+            stroke: #999;
+            stroke-width: 1.5px;
+        }
+
+        .minute-hand{
+            stroke-width:2;
+            stroke-linecap:round;
+        }
+
+        .hour-hand{
+            stroke-width:3;
+            stroke-linecap:round;
+        }
+
+        .hands-cover{
+            stroke-width:.75;
+            fill:#fff;
+        }
+
+        .minute-tick{
+            stroke-width:.75;
+            fill:#000;
+        }
+
+        .hour-tick{
+            stroke-width:2; //same as the minute hand
+        }
+
+        .minute-label{
+            font-size: 14px;
+            stroke: #666;
+        }
+
+        .hour-label{
+            font-size: 24px;
+        }
+
+
+    </style>
+</head>
 <body>
+<h1>Europe (Synchronised)</h1>
+<div id="europe" class="clocks"></div>
+<h1>USA (Local)</h1>
+<div id="usa" class="clocks"></div>
 <script src="http://d3js.org/d3.v3.min.js"></script>
+<script>
 
-    <script>
-        var radians = 0.0174532925,
-            clockRadius = 200,
-            margin = 50,
-            width = (clockRadius+margin)*2,
-            height = (clockRadius+margin)*2,
-            hourHandLength = 2*clockRadius/3,
-            minuteHandLength = clockRadius,
-            secondHandLength = clockRadius-12,
-            secondHandBalance = 30,
-            secondTickStart = clockRadius;
-        secondTickLength = -10,
-            hourTickStart = clockRadius,
-            hourTickLength = -18
-        secondLabelRadius = clockRadius + 16;
-        secondLabelYOffset = 5
-        hourLabelRadius = clockRadius - 40
-        hourLabelYOffset = 7;
+    var radians = 0.0174532925,
+        clockRadius = 100,
+        margin = 5,
+        width = (clockRadius+margin)*2,
+        height = (clockRadius+margin)*4+150,
+        hourHandLength = 2*clockRadius/3,
+        minuteHandLength = clockRadius,
+        minuteTickStart = clockRadius;
+    minuteTickLength = -10,
+        hourTickStart = clockRadius,
+        hourTickLength = -18
+    minuteLabelRadius = clockRadius - 40;
+    minuteLabelYOffset = 5
+    hourLabelRadius = clockRadius - 40
+    hourLabelYOffset = 7;
 
 
+    var hourScale = d3.scale.linear()
+        .range([0,330])
+        .domain([0,11]);
 
-        var hourScale = d3.scale.linear()
-            .range([0,330])
-            .domain([0,11]);
-        var minuteScale = secondScale = d3.scale.linear()
-            .range([0,354])
-            .domain([0,59]);
-        var handData = [
-            {
-                type:'hour',
-                value:0,
-                length:-hourHandLength,
-                scale:hourScale
-            },
-            {
-                type:'minute',
-                value:0,
-                length:-minuteHandLength,
-                scale:minuteScale
-            },
-            {
-                type:'second',
-                value:0,
-                length:-secondHandLength,
-                scale:secondScale,
-                balance:secondHandBalance
-            }
-        ];
-        var handData2 = [
-            {
-                type:'hour',
-                value:0,
-                length:-hourHandLength,
-                scale:hourScale
-            },
-            {
-                type:'minute',
-                value:0,
-                length:-minuteHandLength,
-                scale:minuteScale
-            },
-            {
-                type:'second',
-                value:0,
-                length:-secondHandLength,
-                scale:secondScale,
-                balance:secondHandBalance
-            }
-        ];
+    var minuteScale = d3.scale.linear()
+        .range([0,354])
+        .domain([0,59]);
 
-        function drawClock(){ //create all the clock elements
-            updateData();	//draw them in the correct starting position
-            var svg = d3.select("body").append("svg")
-                .attr("width", width)
-                .attr("height", height);
-            var face = svg.append('g')
-                .attr('id','clock-face')
-                .attr('transform','translate(' + (clockRadius + margin) + ',' + (clockRadius + margin) + ')');
-            //add marks for seconds
-            face.selectAll('.second-tick')
-                .data(d3.range(0,60)).enter()
-                .append('line')
-                .attr('class', 'second-tick')
-                .attr('x1',0)
-                .attr('x2',0)
-                .attr('y1',secondTickStart)
-                .attr('y2',secondTickStart + secondTickLength)
-                .attr('transform',function(d){
-                    return 'rotate(' + secondScale(d) + ')';
-                });
-            //and labels
-            face.selectAll('.second-label')
-                .data(d3.range(5,61,5))
-                .enter()
-                .append('text')
-                .attr('class', 'second-label')
-                .attr('text-anchor','middle')
-                .attr('x',function(d){
-                    return secondLabelRadius*Math.sin(secondScale(d)*radians);
-                })
-                .attr('y',function(d){
-                    return -secondLabelRadius*Math.cos(secondScale(d)*radians) + secondLabelYOffset;
-                })
-                .text(function(d){
-                    return d;
-                });
-            //... and hours
-            face.selectAll('.hour-tick')
-                .data(d3.range(0,12)).enter()
-                .append('line')
-                .attr('class', 'hour-tick')
-                .attr('x1',0)
-                .attr('x2',0)
-                .attr('y1',hourTickStart)
-                .attr('y2',hourTickStart + hourTickLength)
-                .attr('transform',function(d){
-                    return 'rotate(' + hourScale(d) + ')';
-                });
-            face.selectAll('.hour-label')
-                .data(d3.range(3,13,3))
-                .enter()
-                .append('text')
-                .attr('class', 'hour-label')
-                .attr('text-anchor','middle')
-                .attr('x',function(d){
-                    return hourLabelRadius*Math.sin(hourScale(d)*radians);
-                })
-                .attr('y',function(d){
-                    return -hourLabelRadius*Math.cos(hourScale(d)*radians) + hourLabelYOffset;
-                })
-                .text(function(d){
-                    return d;
-                });
-            var hands = face.append('g').attr('id','clock-hands');
-            face.append('g').attr('id','face-overlay')
-                .append('circle').attr('class','hands-cover')
-                .attr('x',0)
-                .attr('y',0)
-                .attr('r',clockRadius/20);
-            hands.selectAll('line')
-                .data(handData)
-                .enter()
-                .append('line')
-                .attr('class', function(d){
-                    return d.type + '-hand';
-                })
-                .attr('x1',0)
-                .attr('y1',function(d){
-                    return d.balance ? d.balance : 0;
-                })
-                .attr('x2',0)
-                .attr('y2',function(d){
-                    return d.length;
-                })
-                .attr('transform',function(d){
-                    return 'rotate('+ d.scale(d.value) +')';
-                });
-        }
-        function drawClock2(){ //create all the clock elements
-            updateData2();	//draw them in the correct starting position
-            var svg = d3.select("body").append("svg")
-                .attr("width", width)
-                .attr("height", height);
-            var face = svg.append('g')
-                .attr('id','clock-face')
-                .attr('transform','translate(' + (clockRadius + margin) + ',' + (clockRadius + margin) + ')');
-            //add marks for seconds
-            face.selectAll('.second-tick')
-                .data(d3.range(0,60)).enter()
-                .append('line')
-                .attr('class', 'second-tick')
-                .attr('x1',0)
-                .attr('x2',0)
-                .attr('y1',secondTickStart)
-                .attr('y2',secondTickStart + secondTickLength)
-                .attr('transform',function(d){
-                    return 'rotate(' + secondScale(d) + ')';
-                });
-            //and labels
-            face.selectAll('.second-label')
-                .data(d3.range(5,61,5))
-                .enter()
-                .append('text')
-                .attr('class', 'second-label')
-                .attr('text-anchor','middle')
-                .attr('x',function(d){
-                    return secondLabelRadius*Math.sin(secondScale(d)*radians);
-                })
-                .attr('y',function(d){
-                    return -secondLabelRadius*Math.cos(secondScale(d)*radians) + secondLabelYOffset;
-                })
-                .text(function(d){
-                    return d;
-                });
-            //... and hours
-            face.selectAll('.hour-tick')
-                .data(d3.range(0,12)).enter()
-                .append('line')
-                .attr('class', 'hour-tick')
-                .attr('x1',0)
-                .attr('x2',0)
-                .attr('y1',hourTickStart)
-                .attr('y2',hourTickStart + hourTickLength)
-                .attr('transform',function(d){
-                    return 'rotate(' + hourScale(d) + ')';
-                });
-            face.selectAll('.hour-label')
-                .data(d3.range(3,13,3))
-                .enter()
-                .append('text')
-                .attr('class', 'hour-label')
-                .attr('text-anchor','middle')
-                .attr('x',function(d){
-                    return hourLabelRadius*Math.sin(hourScale(d)*radians);
-                })
-                .attr('y',function(d){
-                    return -hourLabelRadius*Math.cos(hourScale(d)*radians) + hourLabelYOffset;
-                })
-                .text(function(d){
-                    return d;
-                });
-            var hands2 = face.append('g').attr('id','clock-hands2');
-            face.append('g').attr('id','face-overlay')
-                .append('circle').attr('class','hands-cover')
-                .attr('x',0)
-                .attr('y',0)
-                .attr('r',clockRadius/20);
-            hands2.selectAll('line')
-                .data(handData2)
-                .enter()
-                .append('line')
-                .attr('class', function(d){
-                    return d.type + '-hand';
-                })
-                .attr('x1',0)
-                .attr('y1',function(d){
-                    return d.balance ? d.balance : 0;
-                })
-                .attr('x2',0)
-                .attr('y2',function(d){
-                    return d.length;
-                })
-                .attr('transform',function(d){
-                    return 'rotate('+ d.scale(d.value) +')';
-                });
-        }
+    var london = {
+        'handData': [
+            {   type:'hour', length:-hourHandLength, scale:hourScale, value:0         },
+            {   type:'minute', value:0, length:-minuteHandLength, scale:minuteScale   }
+        ],
+        'dst': 2,
+        'changed': false,
+        'name': 'London',
+        'id': 'lhr',
+        'where': 'europe'
+    };
 
-        function moveHands(){
-            d3.select('#clock-hands').selectAll('line')
-                .data(handData)
-                .transition()
-                .attr('transform',function(d){
-                    return 'rotate('+ d.scale(d.value) +')';
-                });
-        }
-        function moveHands2(){
-            d3.select('#clock-hands2').selectAll('line')
-                .data(handData2)
-                .transition()
-                .attr('transform',function(d){
-                    return 'rotate('+ d.scale(d.value) +')';
-                });
+    var berlin = {
+        'handData': [
+            {   type:'hour', length:-hourHandLength, scale:hourScale, value:1         },
+            {   type:'minute', value:0, length:-minuteHandLength, scale:minuteScale   }
+        ],
+        'dst': 3,
+        'changed': false,
+        'name': 'Berlin',
+        'id': 'txl',
+        'where': 'europe'
+    };
+
+    var helsinki = {
+        'handData': [
+            {   type:'hour', length:-hourHandLength, scale:hourScale, value:2         },
+            {   type:'minute', value:0, length:-minuteHandLength, scale:minuteScale   }
+        ],
+        'dst': 4,
+        'changed': false,
+        'name': 'Helsinki',
+        'id': 'hel',
+        'where': 'europe'
+    };
+
+    // note that these are correct relative to each other but not to Europe
+    // I didn't think waiting for four clock rotations was a good idea
+
+    var la = {
+        'handData': [
+            {   type:'hour', length:-hourHandLength, scale:hourScale, value:8         },
+            {   type:'minute', value:0, length:-minuteHandLength, scale:minuteScale   }
+        ],
+        'dst': 2,
+        'changed': false,
+        'name': 'Los Angeles',
+        'id': 'lax',
+        'where': 'usa'
+    };
+
+    var denver = {
+        'handData': [
+            {   type:'hour', length:-hourHandLength, scale:hourScale, value:9         },
+            {   type:'minute', value:0, length:-minuteHandLength, scale:minuteScale   }
+        ],
+        'dst': 2,
+        'changed': false,
+        'name': 'Denver',
+        'id': 'den',
+        'where': 'usa'
+    };
+
+    var chicago = {
+        'handData': [
+            {   type:'hour', length:-hourHandLength, scale:hourScale, value:10        },
+            {   type:'minute', value:0, length:-minuteHandLength, scale:minuteScale   }
+        ],
+        'dst': 2,
+        'changed': false,
+        'name': 'Chicago',
+        'id': 'ord',
+        'where': 'usa'
+    };
+
+    var nyc = {
+        'handData': [
+            {   type:'hour', length:-hourHandLength, scale:hourScale, value:11        },
+            {   type:'minute', value:0, length:-minuteHandLength, scale:minuteScale   }
+        ],
+        'dst': 2,
+        'changed': false,
+        'name': 'New York',
+        'id': 'jfk',
+        'where': 'usa'
+    };
+
+    clocks = [london, berlin, helsinki, la, denver, chicago, nyc];
+
+    function drawClock(clock){ //create all the clock elements
+        var svg = d3.select("div#"+clock['where']).append("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+        var face = svg.append('g')
+            .attr('id','clock-face-'+clock['id'])
+            .attr('transform','translate(' + (clockRadius + margin) + ',' + (clockRadius + margin) + ')');
+
+        //add marks for minutes
+        face.selectAll('.minute-tick')
+            .data(d3.range(0,60)).enter()
+            .append('line')
+            .attr('class', 'minute-tick')
+            .attr('x1',0)
+            .attr('x2',0)
+            .attr('y1',minuteTickStart)
+            .attr('y2',minuteTickStart + minuteTickLength)
+            .attr('transform',function(d){
+                return 'rotate(' + minuteScale(d) + ')';
+            });
+
+        face.selectAll('.minute-label')
+            .data(d3.range(5,61,5))
+            .enter()
+            .append('text')
+            .attr('class', 'minute-label')
+            .attr('text-anchor','middle')
+            .attr('x',function(d){
+                return minuteLabelRadius*Math.sin(minuteScale(d)*radians);
+            })
+            .attr('y',function(d){
+                return -minuteLabelRadius*Math.cos(minuteScale(d)*radians) + minuteLabelYOffset;
+            })
+            .text(function(d){
+                if (d==30) {
+                    return clock['name'];
+                }
+                return '';
+            });
+
+        //... and hours
+        face.selectAll('.hour-tick')
+            .data(d3.range(0,12)).enter()
+            .append('line')
+            .attr('class', 'hour-tick')
+            .attr('x1',0)
+            .attr('x2',0)
+            .attr('y1',hourTickStart)
+            .attr('y2',hourTickStart + hourTickLength)
+            .attr('transform',function(d){
+                return 'rotate(' + hourScale(d) + ')';
+            });
+
+
+        var hands = face.append('g').attr('id','clock-hands-'+clock['id']);
+
+        face.append('g').attr('id','face-overlay')
+            .append('circle').attr('class','hands-cover')
+            .attr('x',0)
+            .attr('y',0)
+            .attr('r',clockRadius/20);
+
+        hands.selectAll('line')
+            .data(clock['handData'])
+            .enter()
+            .append('line')
+            .attr('class', function(d){
+                return d.type + '-hand';
+            })
+            .attr('x1',0)
+            .attr('y1',function(d){
+                return d.balance ? d.balance : 0;
+            })
+            .attr('x2',0)
+            .attr('y2',function(d){
+                return d.length;
+            })
+            .attr('transform',function(d){
+                return 'rotate('+ d.scale(d.value) +')';
+            });
+    }
+
+    function moveHands(clock){
+        d3.select('#clock-hands-'+clock['id']).selectAll('line')
+            .data(clock['handData'])
+            .transition()
+            .ease('linear')
+            .attr('transform',function(d){
+                return 'rotate('+ d.scale(d.value) +')';
+            });
+    }
+
+    function updateData(clock){
+        var inc = 75;
+        clock['handData'][0].value += inc/3600;
+        clock['handData'][1].value += inc/60;
+
+        if (clock['dst']-1 < clock['handData'][0].value &&
+            clock['handData'][0].value < clock['dst'] &&
+            !clock['changed']) {
+
+            d3.select('#clock-face-'+clock['id']).style('stroke', '#f00')
         }
 
 
-        function updateData(){
-            var t = new Date();
-            handData[0].value = (t.getHours() % 12) + t.getMinutes()/60 ;
-            handData[1].value = t.getMinutes();
-            handData[2].value = t.getSeconds();
-        }
-        function updateData2(){
-            var t = new Date();
-            handData2[0].value = ((t.getHours() % 12) + t.getMinutes()/60) + 1 ;
-            handData2[1].value = t.getMinutes();
-            handData2[2].value = t.getSeconds();
+        if (clock['dst'] < clock['handData'][0].value &&
+            clock['handData'][0].value < clock['dst']+1 &&
+            !clock['changed']) {
+
+            clock['handData'][0].value = clock['dst']-1;
+            clock['changed'] = true;
+            d3.select('#clock-face-'+clock['id']).style('stroke', '#000')
         }
 
-        drawClock();
-        drawClock2();
+        if (12 < clock['handData'][0].value) {
+            clock['handData'][0].value -= 12;
+            clock['changed'] = false;
+        }
+    }
 
-        setInterval(function(){
-            updateData();
-            moveHands();
-            updateData2();
-            moveHands2();
-        }, 1000);
+    for (var i = 0; i < clocks.length; i++) {
+        drawClock(clocks[i]);
+    }
 
-        d3.select(self.clock).style("height", height + "px");
-        d3.select(self.clock2).style("height", height + "px");
+    setInterval(function(){
+        for (var i = 0; i < clocks.length; i++) {
+            updateData(clocks[i]);
+            moveHands(clocks[i]);
+        };
+    }, 100);
 
-
-    </script>
-<body>
-<h1>
-    &emsp;&emsp;&emsp;&emsp;&emsp;Central Standard Time &emsp;&emsp;&emsp;&emsp;&emsp;
-    Eastern Standard Time
-</h1>
+    d3.select(self.frameElement).style("height", height + "px");
+</script>
 </body>
+</html>
